@@ -1,6 +1,6 @@
 source "https://rubygems.org"
 
-gem "diaspora_federation", :git => "https://github.com/cmrd-senya/diaspora_federation.git", :branch => "hydra-wrapper"
+gem "diaspora_federation", "> 0.1"
 gem "sinatra"
 
 #development

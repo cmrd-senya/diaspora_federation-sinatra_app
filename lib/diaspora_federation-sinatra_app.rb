@@ -5,12 +5,8 @@ require "diaspora_federation"
 require "open-uri"
 
 class DiasporaFederation::SinatraApp < Sinatra::Base
-  def self.federation_module
-    DiasporaFederation
-  end
-
   def my_url
-    self.class.federation_module.server_uri
+    DiasporaFederation.server_uri
   end
 
   #routes
@@ -20,18 +16,18 @@ class DiasporaFederation::SinatraApp < Sinatra::Base
     hostmeta.to_xml
   end
 
-  get "/webfinger" do
-    id = params[:q].match(/acct:([^\&]+)/)[1]
-    self.class.federation_module.callbacks.trigger(:fetch_person_for_webfinger, id).to_xml
+  get "/.well-known/webfinger.xml" do
+    id = params[:resource].match(/acct:([^\&]+)/)[1]
+    DiasporaFederation.callbacks.trigger(:fetch_person_for_webfinger, id).to_xml
   end
 
   get '/hcard/users/:guid' do |guid|
-    self.class.federation_module.callbacks.trigger(:fetch_person_for_hcard, params[:guid]).to_html
+    DiasporaFederation.callbacks.trigger(:fetch_person_for_hcard, params[:guid]).to_html
   end
 
   post "/receive/users/:guid" do |guid|
     begin
-      DiasporaFederation::Receiver::Private.new(params[:guid], CGI.unescape(params[:xml])).receive!
+      DiasporaFederation.callbacks.trigger(:queue_private_receive, guid, request.body.read, false)
       ""
     rescue DiasporaFederation::RecipientNotFound
       status 404
@@ -39,7 +35,7 @@ class DiasporaFederation::SinatraApp < Sinatra::Base
   end
 
   post "/receive/public" do
-    DiasporaFederation::Receiver::Public.new(CGI.unescape(params[:xml])).receive!
+    DiasporaFederation.callbacks.trigger(:queue_public_receive, request.body.read, false)
     ""
   end
 end
